@@ -79,7 +79,7 @@ Assuming `foo:bar:baz` base key:
 ```
 # redis.connect(redis_options)
 GET foo:bar:baz:md5 # assume md5 mismatch
-SET foo:bar:baz # file contents
+SET foo:bar:baz     # file contents
 SET foo:bar:baz:md5 # file contents md5
 INCR foo:bar:baz:version
 ```
