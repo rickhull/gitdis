@@ -71,13 +71,15 @@ class GitDis
   # update only if the local file exists and has a different md5 than redis
   def update(keymap)
     keymap.each { |base_key, relpath|
+      # does file exist?
       abspath = File.join(@repo_dir, relpath)
       unless File.exist? abspath
         puts "#{abspath} does not exist; skipping..."
         next
       end
-      md5 = Digest::MD5.file(abspath).hexdigest
 
+      # check md5
+      md5 = Digest::MD5.file(abspath).hexdigest
       fkey, vkey, mkey = self.class.keyset(base_key)
       if @redis.get(mkey) == md5
         puts "#{relpath} md5 matches redis; nothing to do"
