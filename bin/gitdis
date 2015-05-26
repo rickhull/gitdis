@@ -31,6 +31,8 @@ end
 
 config = YAML.load_file(yaml_file)
 env_config = {}
+
+# apply any env-specific settings
 if opts[:environment]
   env = opts[:environment].downcase
   if config['environments']
@@ -49,10 +51,10 @@ if opts[:environment]
   end
 end
 config.merge!(env_config)
-redis_options = {}
 
 # update config with any settings from opts
 # split out redis options
+redis_options = {}
 %w[git-repo git-branch redis-host redis-port redis-db].each { |item|
   opt_value = opts[item.to_sym]
   puts [item, opt_value].join(': ')
@@ -64,12 +66,15 @@ redis_options = {}
 }
 puts "Redis options: #{redis_options}"
 
+# make sure we have a keymap
 keymap = config.fetch('keymap')
+raise "keymap should be a hash/map" unless keymap.is_a?(Hash)
 
+# do things'n'stuff
 if opts.dump?
   GitDis.dump(keymap.keys, redis_options)
 else
-  repo = config.fetch('git-repo')
-  branch = config.fetch('git-branch')
-  GitDis.new(repo, redis_options).git_pull(branch).update(keymap)
+  gd = GitDis.new config.fetch('git-repo')
+  gd.git_pull config.fetch('git-branch')
+  gd.update keymap
 end
