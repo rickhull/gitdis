@@ -50,7 +50,7 @@ redis_options = {}
   opt_value = opts[item.to_sym]
   puts [item, opt_value].join(': ')
   config[item] = opt_value if opt_value
-  if item.match /^redis/
+  if item.match /^redis/      # set :host, :port, :db
     cfg_value = config[item]
     redis_options[item.split('-').last.to_sym] = cfg_value if cfg_value
   end
