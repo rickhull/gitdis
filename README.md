@@ -18,23 +18,49 @@
 
 ### YAML Config
 
+5 options, 1 keymap, plus environment overrides:
+
 ```
-TBD
+redis-host: localhost
+redis-port: 6379
+redis-db: 0
+git-repo: ~/foo/bar/baz
+git-branch: quux
+keymap:
+  "redis:key:1": "path/to/file1"
+  "redis:key:2": "path/to/file2"
+
+environments:
+  yours:
+    redis-host: localhost
+    git-branch: mine
+  mine:
+    redis-host: localhost
+    git-branch: yours
+  qa:
+    redis-host: qa.big.com
+    git-branch: develop
+  prod:
+    redis-host: secret.big.net
+    git-branch: master
 ```
 
 ### Command Line Options
 
+Select your environment (optional).  Add final overrides (optional).
+
 ```
-    -e, --environment  within config.yaml
-Redis overrides
+  Environment selection
+    -e, --environment  select within YAML[environments]
+  Redis overrides
     -H, --redis-host   string
     -p, --redis-port   number
     -d, --redis-db     number
-Git repo overrides
+  Git repo overrides
     -r, --git-repo     path/to/repo_dir
     -b, --git-branch   e.g. master
-Other options
-    -D, --dump         Just dump Redis contents
+  Other options
+    -D, --dump         Just dump Redis contents per YAML keymap
     -h, --help
 ```
 
@@ -50,11 +76,13 @@ Other options
 
 Assuming `foo:bar:baz` base key:
 
-1. Connect to redis according to specified redis options
-2. `GET foo:bar:baz:md5`; *Assume md5 mismatch*
-3. `SET foo:bar:baz` to the file contents
-4. `SET foo:bar:baz:md5` to the file contents' md5
-5. `INCR foo:bar:baz:version`
+```
+# redis.connect(redis_options)
+GET foo:bar:baz:md5 # assume md5 mismatch
+SET foo:bar:baz # file contents
+SET foo:bar:baz:md5 # file contents md5
+INCR foo:bar:baz:version
+```
 
 ### Execution
 
