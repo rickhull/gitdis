@@ -29,28 +29,19 @@ unless(yaml_file = opts.arguments.shift)
   exit 1
 end
 
-config = YAML.load_file(yaml_file)
-env_config = {}
+# load the default (required) config
+yaml = YAML.load_file(yaml_file)
+config = yaml.fetch('default')
 
 # apply any env-specific settings
 if opts[:environment]
   env = opts[:environment].downcase
-  if config['environments']
-    envs = config.delete('environments')
-    if envs[env]
-      puts "found #{env} env"
-      env_config = envs[env]
-      warn "env_config is a #{env_config.class}" unless env_config.is_a?(Hash)
-    else
-      warn "no environment #{env} found in #{yaml_file}"
-      exit 1
-    end
-  else
-    warn "no environments config found"
+  unless yaml.key?(env)
+    warn "no environment #{env} found in #{yaml_file}"
     exit 1
   end
+  config.merge!(yaml[env])
 end
-config.merge!(env_config)
 
 # update config with any settings from opts
 # split out redis options
