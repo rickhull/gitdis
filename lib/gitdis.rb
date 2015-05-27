@@ -68,11 +68,12 @@ class GitDis
     self
   end
 
-  # update only if calculated md5 differs from redis
+  # quick false if calculated md5 == redis md5
+  # otherwise update contents and md5; increment version
   def update_redis(base_key, file_contents)
     md5 = Digest::MD5.hexdigest(file_contents)
     fkey, vkey, mkey = self.class.keyset(base_key)
-    return if @redis.get(mkey) == md5
+    return false if @redis.get(mkey) == md5
 
     @redis.set(fkey, file_contents)
     @redis.set(mkey, md5)
@@ -80,35 +81,35 @@ class GitDis
     [ver, md5]
   end
 
-  # handle e.g. 'foo:bar:baz' => 'foo/bar/*.baz'
-  def update(keymap)
-    keymap.each { |base_key, relpath|
-      files = Dir.glob(File.join(@repo_dir, relpath))
-      case files.length
-      when 0
-        puts "#{relpath} does not exist"
-
-      when 1
-        ver, md5 = self.update_redis(base_key, File.read(files.first))
-
-      else
-        puts "concatenating multiple files"
-        result = ''
-        sep = "\n"
-        files.each { |fname|
-          s = File.read(fname)
-          if s and !s.empty?
-            sep = "\r\n" if sep == "\n" and s.include?("\r")
-            result << s << sep
-          elsif s
-            puts "#{fname} is empty"
-          else
-            puts "problem reading #{fname}"
-          end
-        }
-        ver, md5 = self.update_redis(base_key, result.chomp(sep))
-      end
-    }
-    self
+  # e.g. update('foo:bar:baz', 'foo/bar/*.baz')
+  # return nil        # path does not exist
+  #        false      # no update needed
+  #        [ver, md5] # updated
+  def update(base_key, relpath)
+    # handle e.g. "foo/bar/*.yaml"
+    files = Dir.glob(File.join(@repo_dir, relpath))
+    case files.length
+    when 0 then nil
+    when 1 then self.update_redis(base_key, File.read(files.first))
+    else
+      puts "concatenating #{files.length} files"
+      result = ''
+      sep = "\n"
+      files.each { |fname|
+        s = File.read(fname)
+        if s and !s.empty?
+          # scan for carriage returns (Microsoft text format)
+          sep = "\r\n" if sep == "\n" and s.include?("\r")
+          s << sep if s.last != "\n"
+          result << s
+        # debugging
+        elsif s
+          puts "#{fname} is empty"
+        else
+          puts "File.read(#{fname}) returned false/nil"
+        end
+      }
+      self.update_redis(base_key, result.chomp(sep))
+    end
   end
 end

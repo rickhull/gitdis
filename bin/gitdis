@@ -43,23 +43,27 @@ if opts[:environment]
   config.merge!(yaml[env])
 end
 
+# make sure we have a keymap
+keymap = config.fetch('keymap')
+raise "keymap should be a hash/map" unless keymap.is_a?(Hash)
+
 # update config with any settings from opts
-# split out redis options
+# create redis_options
 redis_options = {}
 %w[git-repo git-branch redis-host redis-port redis-db].each { |item|
   opt_value = opts[item.to_sym]
   puts [item, opt_value].join(': ')
   config[item] = opt_value if opt_value
-  if item.match /^redis/      # set :host, :port, :db
+  if item.match /^redis-/      # set :host, :port, :db
     cfg_value = config[item]
-    redis_options[item.split('-').last.to_sym] = cfg_value if cfg_value
+    if cfg_value
+      # "redis-foo-bar" => :foo_bar
+      ropt = item.split('-').drop(1).join('_').to_sym
+      redis_options[ropt] = cfg_value
+    end
   end
 }
 puts "Redis options: #{redis_options}"
-
-# make sure we have a keymap
-keymap = config.fetch('keymap')
-raise "keymap should be a hash/map" unless keymap.is_a?(Hash)
 
 # do things'n'stuff
 if opts.dump?
@@ -67,5 +71,17 @@ if opts.dump?
 else
   gd = GitDis.new config.fetch('git-repo')
   gd.git_pull config.fetch('git-branch')
-  gd.update keymap
+  keymap.each { |key, fileglob|
+    result = gd.update(key, fileglob)
+    case result
+    when nil
+      puts "#{fileglob} not found"
+    when false
+      puts "#{fileglob} unchanged"
+    else
+      ver, md5 = *result
+      puts "#{fileglob} updated:"
+      puts "\tVersion: #{ver} (#{md5})"
+    end
+  }
 end
