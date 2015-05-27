@@ -68,30 +68,46 @@ class GitDis
     self
   end
 
-  # update only if the local file exists and has a different md5 than redis
+  # update only if calculated md5 differs from redis
+  def update_redis(base_key, file_contents)
+    md5 = Digest::MD5.hexdigest(file_contents)
+    fkey, vkey, mkey = self.class.keyset(base_key)
+    return if @redis.get(mkey) == md5
+
+    @redis.set(fkey, file_contents)
+    @redis.set(mkey, md5)
+    ver = @redis.incr(vkey)
+    [ver, md5]
+  end
+
+  # handle e.g. 'foo:bar:baz' => 'foo/bar/*.baz'
   def update(keymap)
     keymap.each { |base_key, relpath|
-      # does file exist?
-      abspath = File.join(@repo_dir, relpath)
-      unless File.exist? abspath
-        puts "#{abspath} does not exist; skipping..."
-        next
-      end
+      files = Dir.glob(File.join(@repo_dir, relpath))
+      case files.length
+      when 0
+        puts "#{relpath} does not exist"
 
-      # check md5
-      md5 = Digest::MD5.file(abspath).hexdigest
-      fkey, vkey, mkey = self.class.keyset(base_key)
-      if @redis.get(mkey) == md5
-        puts "#{relpath} md5 matches redis; nothing to do"
-        next
-      end
+      when 1
+        ver, md5 = self.update_redis(base_key, File.read(files.first))
 
-      # update redis
-      puts "updating [#{fkey}]"
-      @redis.set(fkey, File.read(abspath))
-      @redis.set(mkey, md5)
-      ver = @redis.incr(vkey)
-      puts "\tversion #{ver} (#{md5})"
+      else
+        puts "concatenating multiple files"
+        result = ''
+        sep = "\n"
+        files.each { |fname|
+          s = File.read(fname)
+          if s and !s.empty?
+            sep = "\r\n" if sep == "\n" and s.include?("\r")
+            result << s << sep
+          elsif s
+            puts "#{fname} is empty"
+          else
+            puts "problem reading #{fname}"
+          end
+        }
+        ver, md5 = self.update_redis(base_key, result.chomp(sep))
+      end
     }
     self
   end
