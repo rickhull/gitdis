@@ -18,31 +18,27 @@
 
 ### YAML Config
 
-5 options, 1 keymap, plus environment overrides:
+Toplevel keys are environments.  `default` is required. Other environment
+settings override defaults.  5 options, 1 keymap.
 
 ```
-redis-host: localhost
-redis-port: 6379
-redis-db: 0
-git-repo: ~/foo/bar/baz
-git-branch: quux
-keymap:
-  "redis:key:1": "path/to/file1"
-  "redis:key:2": "path/to/file2"
+default:
+  redis-host: localhost
+  redis-port: 6379
+  redis-db: 0
+  git-repo: ~/foo/bar/baz
+  git-branch: quux
+  keymap:
+    "redis:key:1": "path/to/file1"
+    "redis:key:2": "path/to/file2"
 
-environments:
-  yours:
-    redis-host: localhost
-    git-branch: mine
-  mine:
-    redis-host: localhost
-    git-branch: yours
-  qa:
-    redis-host: qa.big.com
-    git-branch: develop
-  prod:
-    redis-host: secret.big.net
-    git-branch: master
+qa:
+  redis-host: qa.big.com
+  git-branch: develop
+
+prod:
+  redis-host: secret.big.net
+  git-branch: master
 ```
 
 ### Command Line Options
