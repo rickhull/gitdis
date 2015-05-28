@@ -47,7 +47,7 @@ Select your environment (optional).  Add final overrides (optional).
 
 ```
   Environment selection
-    -e, --environment  select within YAML[environments]
+    -e, --environment  toplevel YAML key
   Redis overrides
     -H, --redis-host   string
     -p, --redis-port   number
