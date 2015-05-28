@@ -52,8 +52,8 @@ raise "keymap should be a hash/map" unless keymap.is_a?(Hash)
 redis_options = {}
 %w[git-repo git-branch redis-host redis-port redis-db].each { |item|
   opt_value = opts[item.to_sym]
-  puts [item, opt_value].join(': ')
   config[item] = opt_value if opt_value
+
   if item.match /^redis-/      # set :host, :port, :db
     cfg_value = config[item]
     if cfg_value
@@ -62,6 +62,7 @@ redis_options = {}
       redis_options[ropt] = cfg_value
     end
   end
+  puts [item, config[item]].join(': ') if config[item]
 }
 puts "Redis options: #{redis_options}"
 
