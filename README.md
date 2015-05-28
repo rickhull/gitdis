@@ -41,6 +41,8 @@ prod:
   git-branch: master
 ```
 
+See also https://github.com/rickhull/gitdis/tree/master/examples
+
 ### Command Line Options
 
 Select your environment (optional).  Add final overrides (optional).
