@@ -7,7 +7,7 @@ require 'gitdis'
 opts = Slop.parse { |o|
   o.banner = "USAGE: gitdis path/to/config.yaml [options]"
   o.separator '  Environment selection'
-  o.string '-e', '--environment', 'select within YAML[environments]'
+  o.string '-e', '--environment', 'toplevel YAML key'
   o.separator '  Redis overrides'
   o.string  '-H', '--redis-host', 'string'
   o.integer '-p', '--redis-port', 'number'
