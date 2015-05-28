@@ -1,0 +1,21 @@
+default:
+  git-repo:   '~/src/repo_dir'
+  git-branch: master
+  redis-host: localhost
+  redis-port: 6379
+  redis-db: 0
+  keymap:
+    'foo:bar:baz':  'foo/bar/baz.txt'
+    'foo:bar:quux': 'foo/bar/quux.yaml'
+
+# override any keys above
+qa:
+  redis-host: 'qa.big.com'
+  git-branch: 'develop'
+
+prod:
+  redis-host: 'secret.big.com'
+
+frank:
+  redis-host: 'frank.big.com'
+  git-branch: 'frank_feature'

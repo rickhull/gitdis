@@ -1,0 +1,5 @@
+default:
+  git-repo:   'path/to/repo_dir'
+  git-branch: master
+  keymap:
+    'foo:bar': 'foo/bar.tsv'
