@@ -52,8 +52,8 @@ class GitDis
   attr_accessor :repo_dir, :redis
 
   def initialize(repo_dir, redis_options = {})
-    raise "#{repo_dir} does not exist!" unless Dir.exist? repo_dir
-    @repo_dir = repo_dir
+    @repo_dir = File.expand_path(repo_dir)
+    raise "#{@repo_dir} does not exist!" unless Dir.exist? @repo_dir
     @redis = Redis.new(redis_options)
   end
 
