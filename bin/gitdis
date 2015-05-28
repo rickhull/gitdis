@@ -66,12 +66,13 @@ redis_options = {}
 }
 puts "Redis options: #{redis_options}"
 
-# do things'n'stuff
+# process keymap
 if opts.dump?
   GitDis.dump(keymap.keys, redis_options)
 else
   gd = GitDis.new config.fetch('git-repo')
   gd.git_pull config.fetch('git-branch')
+
   keymap.each { |key, fileglob|
     result = gd.update(key, fileglob)
     case result
