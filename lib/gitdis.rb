@@ -42,11 +42,10 @@ class GitDis
         val = redis.get(rkey)
         if val and val.include?("\n")
           val = "\n" << val.split("\n").map { |line| "\t#{line}" }.join("\n")
+          puts ["[#{rkey}]", val].join(' ')
         end
-        puts ["[#{rkey}]", val].join(' ')
       }
     }
-    redis.disconnect
   end
 
   attr_accessor :repo_dir, :redis
