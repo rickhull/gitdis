@@ -92,23 +92,25 @@ class GitDis
     when 1 then self.update_redis(base_key, File.read(files.first))
     else
       puts "concatenating #{files.length} files"
-      result = ''
       sep = "\n"
-      files.each { |fname|
-        s = File.read(fname)
-        if s and !s.empty?
+
+      payload = files.map { |fname|
+        contents = File.read(fname)
+        if contents and !contents.empty?
           # scan for carriage returns (Microsoft text format)
-          sep = "\r\n" if sep == "\n" and s.include?("\r")
-          s << sep if s.last != "\n"
-          result << s
+          sep = "\r\n" if sep == "\n" and contents.include?("\r")
+          contents
         # debugging
-        elsif s
+        elsif contents
           puts "#{fname} is empty"
+          nil
         else
           puts "File.read(#{fname}) returned false/nil"
+          nil
         end
-      }
-      self.update_redis(base_key, result.chomp(sep))
+      }.compact.join("---#{sep}")
+
+      self.update_redis(base_key, payload)
     end
   end
 end
