@@ -70,7 +70,7 @@ puts "Redis options: #{redis_options}"
 if opts.dump?
   GitDis.dump(keymap.keys, redis_options)
 else
-  gd = GitDis.new config.fetch('git-repo')
+  gd = GitDis.new(config.fetch('git-repo'), redis_options)
   gd.git_pull config.fetch('git-branch')
 
   keymap.each { |key, fileglob|
