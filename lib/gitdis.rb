@@ -48,9 +48,45 @@ class GitDis
     }
   end
 
-  attr_accessor :repo_dir, :redis
+  # concatenate file contents into a single string
+  # separate by newlines, including CRs if any CRs are detected anywhere
+  # include a filetype-specific separator if recognized
+  # filenames is an array, and all lengths 0-N are handled
+  def self.concatenate(filenames)
+    filetypes = filenames.map { |fname| File.extname(fname) }.uniq
+    case filetypes.length
+    when 0
+      return "" if filenames.length == 0
+      raise "filetype detection failure: #{filenames}"
+    when 1
+      sep = self.separator(filetypes.first)
+    else
+      raise "refusing to concatenate disparate filetypes: #{filetypes}"
+    end
+
+    payload = filenames.map { |fname|
+      contents = File.read(fname) || raise("could not read #{fname}")
+      sep << "\r" if !sep.include?("\r") and contents.include?("\r")
+      contents if !contents.empty?
+    }.compact.join("#{sep}\n")
+  end
+
+  # return a specific separator for known filetypes
+  # e.g. yaml document separator: ---
+  def self.separator(filetype)
+    filetype = filetype[1..-1] if filetype[0] == '.'
+    case filetype.downcase
+    when 'yaml', 'yml'
+      '---'
+    else
+      ''
+    end
+  end
+
+  attr_accessor :repo_dir, :redis, :dry_run
 
   def initialize(repo_dir, redis_options = {})
+    @dry_run = false
     @repo_dir = File.expand_path(repo_dir)
     raise "#{@repo_dir} does not exist!" unless Dir.exist? @repo_dir
     @redis = Redis.new(redis_options)
@@ -68,21 +104,27 @@ class GitDis
   end
 
   # quick false if calculated md5 == redis md5
+  # return true if dry run and update needed
   # otherwise update contents and md5; increment version
   def update_redis(base_key, file_contents)
     md5 = Digest::MD5.hexdigest(file_contents)
     fkey, vkey, mkey = self.class.keyset(base_key)
     return false if @redis.get(mkey) == md5
 
-    @redis.set(fkey, file_contents)
-    @redis.set(mkey, md5)
-    ver = @redis.incr(vkey)
-    [ver, md5]
+    if @dry_run
+      true
+    else
+      @redis.set(fkey, file_contents)
+      @redis.set(mkey, md5)
+      ver = @redis.incr(vkey)
+      [ver, md5]
+    end
   end
 
   # e.g. update('foo:bar:baz', 'foo/bar/*.baz')
   # return nil        # path does not exist
   #        false      # no update needed
+  #        true       # update was needed, but just a dry run
   #        [ver, md5] # updated
   def update(base_key, relpath)
     # handle e.g. "foo/bar/*.yaml"
@@ -90,27 +132,7 @@ class GitDis
     case files.length
     when 0 then nil
     when 1 then self.update_redis(base_key, File.read(files.first))
-    else
-      puts "concatenating #{files.length} files"
-      sep = "\n"
-
-      payload = files.map { |fname|
-        contents = File.read(fname)
-        if contents and !contents.empty?
-          # scan for carriage returns (Microsoft text format)
-          sep = "\r\n" if sep == "\n" and contents.include?("\r")
-          contents
-        # debugging
-        elsif contents
-          puts "#{fname} is empty"
-          nil
-        else
-          puts "File.read(#{fname}) returned false/nil"
-          nil
-        end
-      }.compact.join("---#{sep}")
-
-      self.update_redis(base_key, payload)
+    else        self.update_redis(base_key, self.class.concatenate(files))
     end
   end
 end

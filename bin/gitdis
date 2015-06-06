@@ -16,6 +16,7 @@ opts = Slop.parse { |o|
   o.string '-r', '--git-repo',   'path/to/repo_dir'
   o.string '-b', '--git-branch', 'e.g. master'
   o.separator '  Other options'
+  o.bool    '--dry-run', 'Perform comparisons but do not write to Redis'
   o.bool '-D', '--dump', 'Just dump Redis contents per YAML keymap'
   o.on   '-h', '--help' do
     puts o
@@ -71,6 +72,7 @@ if opts.dump?
   GitDis.dump(keymap.keys, redis_options)
 else
   gd = GitDis.new(config.fetch('git-repo'), redis_options)
+  gd.dry_run = true if opts[:'dry-run']
   gd.git_pull config.fetch('git-branch')
 
   keymap.each { |key, fileglob|
@@ -80,10 +82,14 @@ else
       puts "#{fileglob} not found"
     when false
       puts "#{fileglob} unchanged"
-    else
+    when true
+      puts "#{fileglob} changed but not updated (DRY RUN)"
+    when Array
       ver, md5 = *result
       puts "#{fileglob} updated:"
       puts "\tVersion: #{ver} (#{md5})"
+    else
+      raise "unknown update result: #{result.inspect}"
     end
   }
 end
